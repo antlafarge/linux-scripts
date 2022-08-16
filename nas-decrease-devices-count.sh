@@ -1,4 +1,4 @@
-# Example : sudo ./decrease.sh /dev/md0 4
+# Example : sudo ./nas-decrease-devices-count.sh /dev/md0 4
 
 devicePath=$1
 echo "devicePath=$devicePath"
