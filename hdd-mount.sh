@@ -101,7 +101,7 @@ processDevice()
 }
 
 echo "====================================== INITIAL STATE ======================================="
-lsblk -o +fsuse%,pttype,fstype,label,uuid
+lsblk -o NAME,VENDOR,MODEL,MOUNTPOINT,SIZE,FSUSE%,TYPE,PTTYPE,FSTYPE,LABEL,UUID
 echo "============================================================================================"
 
 for letter in "${letters[@]}"
@@ -110,5 +110,5 @@ do
 done
 
 echo "======================================= FINAL STATE ========================================"
-lsblk -o +fsuse%,pttype,fstype,label,uuid
+lsblk -o NAME,VENDOR,MODEL,MOUNTPOINT,SIZE,FSUSE%,TYPE,PTTYPE,FSTYPE,LABEL,UUID
 echo "============================================================================================"
