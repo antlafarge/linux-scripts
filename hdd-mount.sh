@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # This script creates an ext4 partition in disks without partitions and mount not mounted devices in /mnt directory.
 # This script DOES NEVER delete partions, directories or files.
 
