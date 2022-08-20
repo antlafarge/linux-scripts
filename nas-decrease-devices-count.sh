@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Example : sudo ./nas-decrease-devices-count.sh /dev/md0 4
 
 devicePath=$1
