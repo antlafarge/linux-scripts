@@ -60,7 +60,7 @@ processDevice()
         then
             continue
         fi
-        
+
         for letter2 in "${letters[@]}"
         do
             targetMountPath="/mnt/disk_$letter2"
