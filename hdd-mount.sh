@@ -12,7 +12,7 @@ processDevice()
     deviceBaseName=$1
 
     # Get device informations
-    mapfile -t devicesInfos < <(lsblk -o +pttype,fstype,partuuid -r | grep "^$deviceBaseName")
+    mapfile -t devicesInfos < <(lsblk -o +pttype,fstype,uuid -r | grep "^$deviceBaseName")
     devicesInfosSize=${#devicesInfos[@]}
 
     if [ $devicesInfosSize -eq 0 ]
@@ -42,7 +42,7 @@ processDevice()
         fi
 
         # Refresh device informations
-        mapfile -t devicesInfos < <(lsblk -o +pttype,fstype,partuuid -r | grep "^$deviceBaseName")
+        mapfile -t devicesInfos < <(lsblk -o +pttype,fstype,uuid -r | grep "^$deviceBaseName")
         devicesInfosSize=${#devicesInfos[@]}
     fi
 
@@ -88,8 +88,8 @@ processDevice()
                 continue
             fi
 
-            partuuid=$(echo "$str" | cut -d' ' -f10)
-            echo "PARTUUID=$partuuid $targetMountPath auto defaults 0 0" >> /etc/fstab
+            uuid=$(echo "$str" | cut -d' ' -f10)
+            echo "UUID=$uuid $targetMountPath auto defaults 0 0" >> /etc/fstab
 
             allMountPaths+=($targetMountPath)
 
@@ -100,7 +100,7 @@ processDevice()
 
 echo "====================================== INITIAL STATE ======================================="
 
-lsblk -o +pttype,fstype,partuuid,fsuse%,label
+lsblk -o +pttype,fstype,uuid,fsuse%,label
 
 echo "============================================================================================"
 
@@ -111,6 +111,6 @@ done
 
 echo "======================================= FINAL STATE ========================================"
 
-lsblk -o +pttype,fstype,partuuid,fsuse%,label
+lsblk -o +pttype,fstype,uuid,fsuse%,label
 
 echo "============================================================================================"
