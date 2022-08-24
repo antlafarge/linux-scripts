@@ -1,8 +1,7 @@
-#!/bin/sh
+#!/bin/bash
+
 while sleep 1; do
-	now=$(date)
+	now=$(date -I'seconds')
 	temperature=$(vcgencmd measure_temp)
-	message="[$now] $temperature"
-	echo "$message"
-	echo "$message" >> pi-cpu-temperature.log
+	echo "[$now] $temperature"
 done
