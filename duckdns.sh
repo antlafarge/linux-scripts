@@ -5,7 +5,7 @@
 # crontab :
 #     crontab -e
 # Add this line to execute the script (every day) :
-#     0 0 * * * /home/[MyUser]/duckdns.sh
+#     0 0 * * * /home/[MyUser]/duckdns.sh "myDomain" "myToken"
 
 domain="$1"
 
