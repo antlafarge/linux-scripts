@@ -2,6 +2,9 @@
 
 # Usage : ./duckdns.sh "myDomain" "myToken"
 
+# crontab : Add this line to execute the script (every day) :
+#     0 0 * * * /home/[MyUser]/duckdns.sh
+
 domain="$1"
 
 token="$2"
