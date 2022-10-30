@@ -26,8 +26,9 @@ fi
 
 res=$(curl -s "${duckDnsUrl}")
 
-if [ "$?" -ne 0 ]
+if [ "$res" = "KO" ]
 then
     echo "Update duckdns.org failed"
     echo "duckDnsUrl=${duckDnsUrl}"
+    echo "result=${res}"
 fi
