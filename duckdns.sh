@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Usage : ./duckdns.sh "myDomain" "myToken"
-
+# Usage :
+#     ./duckdns.sh "myDomain" "myToken"
 # crontab :
 #     crontab -e
 # Add this line to execute the script (every day) :
