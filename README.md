@@ -1,2 +1,3 @@
-# linux-tools
-Set of tools for linux
+# linux-scripts
+
+Useful scripts for linux
