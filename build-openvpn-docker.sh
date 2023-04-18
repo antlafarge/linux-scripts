@@ -53,7 +53,7 @@ then
     docker run -v "$openVpnDir/etc/:/etc/openvpn/" --rm -it openvpn ovpn_initpki
 
     echo "======== DOCKER RUN OPENVPN ========"
-    docker run -d --name openvpn --restart unless-stopped -v "$openVpnDir/etc/:/etc/openvpn/" -p "1194:1194/udp" --cap-add NET_ADMIN openvpn
+    docker run -d --name openvpn --restart on-failure:10 -v "$openVpnDir/etc/:/etc/openvpn/" -p "1194:1194/udp" --cap-add NET_ADMIN openvpn
 else
     docker start openvpn
 fi
