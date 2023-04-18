@@ -2,6 +2,8 @@
 
 # Usage : sudo ./build-openvpn-docker.sh
 
+# https://www.grottedubarbu.fr/serveur-openvpn-5-minutes-docker
+
 container=$(docker ps -a | grep "openvpn")
 
 baseDir="$PWD"
@@ -75,8 +77,4 @@ then
     echo "Get this config to connect to the VPN."
 fi
 
-echo "======== Display openvpn docker container logs ========"
-echo "Use [CTRL] + [C] to quit."
-echo "################################################################"
-
-docker logs --follow --tail 20 openvpn
+echo "======== Finished ========"
