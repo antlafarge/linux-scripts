@@ -51,5 +51,6 @@ echo "blockCount=${blockCount}K"
 arraySizeFromBlocksK=$(($blockCount * $blockSize / 1024))
 echo "arraySizeFromBlocksK=${arraySizeFromBlocksK}K ($(($arraySizeFromBlocksK / 1024 / 1024))G)"
 echo "Command you may run : sudo resize2fs $devicePath ${arraySizeFromBlocksK}K"
-echo "Command you may run : sudo mdadm --grow /dev/md0 --array-size ${arraySizeFromBlocksK}"
-echo "Command you may run : sudo mdadm --grow /dev/md0 --raid-devices=$wantedDevices"
+echo "Command you may run : sudo mdadm --grow $devicePath --array-size ${arraySizeFromBlocksK}"
+echo "Command you may run : sudo mdadm --grow $devicePath --level=$raidLevel --raid-devices=$wantedDevices" --backup-file "/var/tmp/md0-backup"
+echo "Use these commands at your own risks!"
