@@ -1,10 +1,16 @@
 #!/bin/bash
 
+# Usage :
+#     ./nas-crontab.sh start
+#     ./nas-crontab.sh stop
+#     ./nas-crontab.sh restart
+#     ./nas-crontab.sh fix
+#     ./nas-crontab.sh info
 # Run the root crontab :
 #     sudo crontab -e
 # Add this line to execute the script (every 60 minutes) :
 #     MAILTO="[user@email.com]"
-#     */60 * * * * /home/[MyUser]/nas-crontab.sh fix
+#     */60 * * * * /home/[MyUser]/nas-crontab.sh
 # And customize these variables :
 NAS_DEVICE="/dev/md0"
 NAS_MOUNTDIR="/mnt/raid"
@@ -21,7 +27,7 @@ start()
     fi
 
     parttypes2=()
-    
+
     for item in "${parttypes[@]}"
     do
         if [[ ! ${parttypes2[*]} =~ "$item" ]]
@@ -52,13 +58,20 @@ start()
     echo "Devices : ${devices[@]}"
 
     echo "Reassamble the raid array"
-    sudo mdadm --assemble --run --force --update=resync $NAS_DEVICE $devices
-    exitCode=$?
-    if [ "$exitCode" -ne 0 ]
-    then
-        echo "Fix NAS failed"
-        exit $exitCode
-    fi
+#    sudo mdadm --assemble --scan
+#    exitCode=$?
+#    if [ "$exitCode" -ne 0 ]
+#    then
+#        echo "mdadm assemble scan failed, forcing assemble..."
+#        sudo mdadm --stop $NAS_DEVICE
+        sudo mdadm --assemble --run --force --update=resync $NAS_DEVICE $devices
+        exitCode=$?
+        if [ "$exitCode" -ne 0 ]
+        then
+            echo "Fix NAS failed"
+            exit $exitCode
+        fi
+#    fi
 
     echo "Mount the raid array"
     sudo mount -a
@@ -92,7 +105,7 @@ stop()
     containers=$(docker ps -q)
     if [ -n "$containers" ]
     then
-        echo "Stop all running  docker containers : $containers"
+        echo "Stop all running  docker containers :\n$containers"
         docker stop $containers
     else
         echo "No running docker containers found"
@@ -111,9 +124,6 @@ stop()
 
     echo "Stop mdadm device $NAS_DEVICE"
     sudo mdadm --stop $NAS_DEVICE
-
-    echo "Stop mdadm device /dev/md127"
-    sudo mdadm --stop /dev/md127
 }
 
 restart()
@@ -125,13 +135,13 @@ restart()
 startServices()
 {
     echo "Restart service samba"
-    sudo service smbd start
+    sudo service smbd restart
 
     echo "Restart service minidlna"
-    sudo service minidlna start
+    sudo service minidlna restart
 }
 
-log()
+info()
 {
     echo "COMMAND \"ls -la /dev/sd*\""
     echo "----------"
@@ -163,7 +173,7 @@ fix()
     then
         echo "Fix NAS"
 
-        log
+        info
 
         restart
 
@@ -184,6 +194,9 @@ then
 elif [ "$1" = "restart" ]
 then
     restart
-else
+elif [ "$1" = "fix" ]
+then
     fix
+else
+    info
 fi
