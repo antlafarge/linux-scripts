@@ -10,7 +10,7 @@
 #     sudo crontab -e
 # Add this line to execute the script (every 60 minutes) :
 #     MAILTO="[user@email.com]"
-#     */60 * * * * /home/[MyUser]/nas-crontab.sh
+#     */60 * * * * /home/[MyUser]/nas-crontab.sh fix
 # And customize these variables :
 NAS_DEVICE="/dev/md0"
 NAS_MOUNTDIR="/mnt/raid"
