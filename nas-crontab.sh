@@ -58,20 +58,13 @@ start()
     echo "Devices : ${devices[@]}"
 
     echo "Reassamble the raid array"
-#    sudo mdadm --assemble --scan
-#    exitCode=$?
-#    if [ "$exitCode" -ne 0 ]
-#    then
-#        echo "mdadm assemble scan failed, forcing assemble..."
-#        sudo mdadm --stop $NAS_DEVICE
-        sudo mdadm --assemble --run --force --update=resync $NAS_DEVICE $devices
-        exitCode=$?
-        if [ "$exitCode" -ne 0 ]
-        then
-            echo "Fix NAS failed"
-            exit $exitCode
-        fi
-#    fi
+    sudo mdadm --assemble --run --force --update=resync $NAS_DEVICE $devices
+    exitCode=$?
+    if [ "$exitCode" -ne 0 ]
+    then
+        echo "Fix NAS failed"
+        exit $exitCode
+    fi
 
     echo "Mount the raid array"
     sudo mount -a
