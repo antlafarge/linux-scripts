@@ -178,6 +178,17 @@ fix()
     fi
 }
 
+help()
+{
+    echo "Available parameters :"
+    echo "  - help"
+    echo "  - info"
+    echo "  - start"
+    echo "  - restart"
+    echo "  - stop"
+    echo "  - fix"
+}
+
 if [ "$1" = "start" ]
 then
     start
@@ -190,6 +201,12 @@ then
 elif [ "$1" = "fix" ]
 then
     fix
-else
+elif [ "$1" = "info" ]
+then
     info
+elif [ "$1" = "help" ]
+then
+    help
+else
+    help
 fi
