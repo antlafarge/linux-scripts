@@ -1,11 +1,12 @@
 #!/bin/bash
 
 # Usage :
-#     ./nas-crontab.sh start
-#     ./nas-crontab.sh stop
-#     ./nas-crontab.sh restart
-#     ./nas-crontab.sh fix
+#     ./nas-crontab.sh help
 #     ./nas-crontab.sh info
+#     ./nas-crontab.sh start
+#     ./nas-crontab.sh restart
+#     ./nas-crontab.sh stop
+#     ./nas-crontab.sh fix
 # Run the root crontab :
 #     sudo crontab -e
 # Add this line to execute the script (every 60 minutes) :
