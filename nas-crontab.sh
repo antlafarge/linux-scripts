@@ -78,9 +78,15 @@ start()
 
     startServices
 
+    if [ -z "$containers" ]
+    then
+        containers=$(docker ps -aq)
+    fi
+    
     if [ -n "$containers" ]
     then
-        echo "Restart stopped docker containers : $containers"
+        echo "Restart docker containers : "
+        echo "$containers"
         docker start $containers
     else
         echo "No docker containers to restart"
@@ -99,7 +105,8 @@ stop()
     containers=$(docker ps -q)
     if [ -n "$containers" ]
     then
-        echo "Stop all running  docker containers :\n$containers"
+        echo "Stop all running docker containers :"
+        echo "$containers"
         docker stop $containers
     else
         echo "No running docker containers found"
