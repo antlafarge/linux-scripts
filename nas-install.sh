@@ -10,18 +10,18 @@ hddUuid="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" # HDD UUID (to check : lsblk -o N
 hddMountPoint="/hdd" # HDD mount point
 
 raidMembersUuid="YYYYYYYY-YYYY-YYYY-YYYY-YYYYYYYYYYYY" # RAID array members UUID (to check : lsblk -o NAME,VENDOR,MODEL,MOUNTPOINT,SIZE,FSUSE%,TYPE,PTTYPE,FSTYPE,LABEL,UUID)
-raidUuid="ZZZZZZZZ-ZZZZ-ZZZZ-ZZZZ-ZZZZZZZZZZZZ" # RAID array UUID (to check : lsblk -o NAME,VENDOR,MODEL,MOUNTPOINT,SIZE,FSUSE%,TYPE,PTTYPE,FSTYPE,LABEL,UUID)
 raidDevicePoint="/dev/md0" # RAID device point
 raidMountPoint="/storage" # RAID mount point
 
 storagePath="/storage" # Storage path
 dockerComposeYmlPath="$storagePath/Private/Apps" # Docker compose yml config path
 
-otherAppsToInstall="git"
+otherAppsToInstall="curl git"
 
 # SCRIPT
 
 # UPDATE
+echo "========"
 read -p "OS and packages update ? (y/N) : " res
 if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
     apt update
@@ -36,6 +36,7 @@ if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
 fi
 
 # HDD
+echo "========"
 read -p "Mount HDD ? (y/N) : " res
 if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
     if ! $(lsblk -l -o UUID | grep -q "$hddUuid"); then # if HDD UUID found
@@ -65,30 +66,25 @@ if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
 fi
 
 # RAID
+echo "========"
 read -p "Re-assemble and mount RAID array ? (y/N) : " res
 if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
     apt install -y mdadm
 
     raidArraysUuids=$(lsblk -l -o FSTYPE,UUID | grep -E "^linux_raid_member\s+" | cut -d" " -f2 | grep -E "[-0-9A-Fa-f]{36}" | sort -u)
 
-    if [[ ${raidArraysUuids[*]} =~ "$raidMembersUuid" ]]; then # if RAID UUID not found
+    if [[ ! ${raidArraysUuids[*]} =~ "$raidMembersUuid" ]]; then # if RAID UUID not found
         echo -e "\tERROR : RAID UUID not found !!"
         exit 1
     fi
 
     raidDevices=$(lsblk -l -o PATH,UUID | grep -E "$raidMembersUuid" | cut -d" " -f1 | tr '\n' ' ')
 
-    if [[ -z $devices ]]; then # if no devices
+    if [[ -z $raidDevices ]]; then # if no devices
         echo -e "\tERROR : RAID devices not found !!"
         exit 1
     fi
 
-    echo -e "\tCreate mount point '$raidMountPoint'"
-    mkdir -p $raidMountPoint
-    chown root:users $raidMountPoint
-    chmod 775 $raidMountPoint
-    find $raidMountPoint -type d -exec chmod g+s {} \;
-    
     echo -e "\tAssemble the RAID array : $raidDevices"
     sudo mdadm --assemble --run --force --update=resync $raidDevicePoint $raidDevices
     exitCode=$?
@@ -97,6 +93,12 @@ if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
         exit $exitCode
     fi
 
+    echo -e "\tCreate mount point '$raidMountPoint'"
+    mkdir -p $raidMountPoint
+    chown root:users $raidMountPoint
+    chmod 775 $raidMountPoint
+    find $raidMountPoint -type d -exec chmod g+s {} \;
+    
     raidFstabLine="$raidDevicePoint	$raidMountPoint	auto	nofail,auto,defaults,noatime	0	0"
     
     if ! grep -q "$raidFstabLine" /etc/fstab; then # if not in fstab
@@ -104,10 +106,12 @@ if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
         echo -e "\n$raidFstabLine\n" >> /etc/fstab
     fi
 
-    if ! $(lsblk -l -o UUID,MOUNTPOINT | grep -Eq "$raidUuid\s+$raidMountPoint"); then # if not mounted
+    if ! $(lsblk -l -o UUID,MOUNTPOINT | grep -Eq "$raidDevicePoint\s+$raidMountPoint"); then # if not mounted
         echo -e "\tMount"
-        mount UUID=$raidUuid $raidMountPoint
+        mount $raidDevicePoint $raidMountPoint
     fi
+
+    echo -e "\tRAID mounted"
 fi
 
 # SAMBA functions
@@ -146,6 +150,7 @@ sambaAddOrReplaceFieldValueInSection()
 }
 
 # SAMBA
+echo "========"
 read -p "Install and configure Samba ? (y/N) : " res
 if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
     apt install -y samba
@@ -156,6 +161,7 @@ if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
     sambaAddOrReplaceFieldValueInSection "printers" "browseable" "yes" "/etc/samba/smb.conf"
     sambaAddOrReplaceFieldValueInSection "printers" "guest ok" "yes" "/etc/samba/smb.conf"
 
+    echo "========"
     read -p "Add HDD root as a Samba share ? (y/N) : " res
     if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
         sambaAddOrReplaceFieldValueInSection "HDD" "comment" "HDD storage" "/etc/samba/smb.conf"
@@ -172,6 +178,7 @@ if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
         sambaAddOrReplaceFieldValueInSection "HDD" "force directory mode" "0777" "/etc/samba/smb.conf"
     fi
 
+    echo "========"
     read -p "Add your 'Public', 'Shared' and 'Private' storage directories as Samba shares ? (y/N) : " res
     if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
         # Public
@@ -235,6 +242,7 @@ if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
         sambaAddOrReplaceFieldValueInSection "Private" "force directory mode" "0770" "/etc/samba/smb.conf"
     fi
     
+    echo "========"
     read -p "Create a samba user named '$user' ? (y/N) : " res
     if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
         smbpasswd -a $user
@@ -259,6 +267,7 @@ minidlnaConfPathReplacement()
 }
 
 # DLNA
+echo "========"
 read -p "Install and configure minidlna ? (y/N) : " res
 if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
     apt install -y minidlna
@@ -275,6 +284,7 @@ if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
 fi
 
 # DOCKER
+echo "========"
 read -p "Install Docker and run Docker compose ? (y/N) : " res
 if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
     # Install Docker
@@ -286,8 +296,8 @@ if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
 
     # Start docker containers in new docker group without re-login
     echo -e "\tStart docker compose from '$dockerComposeYmlPath'"
-    newgrp docker << END
-        cd "$dockerComposeYmlPath"
-        docker compose up -d
-    END
+    sg docker -c "cd '$dockerComposeYmlPath' && docker compose up -d"
 fi
+
+echo "========"
+echo "Done"
