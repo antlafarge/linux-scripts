@@ -18,61 +18,51 @@ NAS_MOUNTDIR="/mnt/raid"
 
 start()
 {
-    echo "Get raid arrays parttypes"
-    parttypes=($(lsblk -l -o FSTYPE,UUID | grep -E "linux_raid_member" | cut -d" " -f2 | grep -E "[-0-9A-Fa-f]{36}"))
+    echo "Get RAID arrays parttypes"
+    parttypes=($(lsblk -l -o FSTYPE,UUID | grep -E "linux_raid_member" | cut -d" " -f2 | grep -E "[-0-9A-Fa-f]{36}" | sort -u))
     exitCode=$?
     if [ "$exitCode" -ne 0 ]
     then
-        echo "Fix NAS failed"
+        echo "Fix NAS failed : RAID members UUID not found"
         exit $exitCode
     fi
 
-    parttypes2=()
-
-    for item in "${parttypes[@]}"
-    do
-        if [[ ! ${parttypes2[*]} =~ "$item" ]]
-        then
-            parttypes2+=($item)
-        fi
-    done
-
-    size=${#parttypes2[@]}
-    if [ $size -gt 1 ]
+    size=${#parttypes[@]}
+    if [ $size -ne 1 ]
     then
-        echo "Multiple raid arrays detected"
+        echo "Fix NAS failed : No or Multiple RAID arrays detected"
         echo "Fix NAS failed"
         exit 1
     else
-        selected=${parttypes2[0]}
+        selected=${parttypes[0]}
     fi
 
-    echo "Get devices linked to the raid array"
+    echo "Get devices linked to the RAID array"
     devices=$(lsblk -l -o PATH,UUID | grep -E "$selected" | cut -d" " -f1 | tr '\n' ' ')
     exitCode=$?
     if [ "$exitCode" -ne 0 ]
     then
-        echo "Fix NAS failed"
+        echo "Fix NAS failed : RAID devices not found"
         exit $exitCode
     fi
 
     echo "Devices : ${devices[@]}"
 
-    echo "Reassamble the raid array"
+    echo "Reassamble the RAID array"
     sudo mdadm --assemble --run --force --update=resync $NAS_DEVICE $devices
     exitCode=$?
     if [ "$exitCode" -ne 0 ]
     then
-        echo "Fix NAS failed"
+        echo "Fix NAS failed : RAID array assemble failed"
         exit $exitCode
     fi
 
-    echo "Mount the raid array"
+    echo "Mount the RAID array"
     sudo mount -a
     exitCode=$?
     if [ "$exitCode" -ne 0 ]
     then
-        echo "Fix NAS failed"
+        echo "Fix NAS failed : RAID mount failed"
         exit $exitCode
     fi
 
@@ -117,7 +107,7 @@ stop()
 
     if [ -n "$mountRes" ]
     then
-        echo "Umount raid array"
+        echo "Umount the RAID array"
         sudo umount $NAS_DEVICE
     else
         echo "Nothing the umount"
