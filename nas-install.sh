@@ -9,7 +9,7 @@ user="MyUsername" # Linux user account name
 hddUuid="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" # HDD UUID (to check : lsblk -o NAME,VENDOR,MODEL,MOUNTPOINT,SIZE,FSUSE%,TYPE,PTTYPE,FSTYPE,LABEL,UUID)
 hddMountPoint="/hdd"                           # HDD mount point
 
-raidMembersUuid="YYYYYYYY-YYYY-YYYY-YYYY-YYYYYYYYYYYY" # RAID array members UUID (to check : lsblk -o NAME,VENDOR,MODEL,MOUNTPOINT,SIZE,FSUSE%,TYPE,PTTYPE,FSTYPE,LABEL,UUID)
+raidMembersUuid="YYYYYYYY-YYYY-YYYY-YYYY-YYYYYYYYYYYY" # RAID UUID for "linux_raid_members" (to check : lsblk -o NAME,VENDOR,MODEL,MOUNTPOINT,SIZE,FSUSE%,TYPE,PTTYPE,FSTYPE,LABEL,UUID)
 raidDevicePoint="/dev/md0"                             # RAID device point
 raidMountPoint="/storage"                              # RAID mount point
 
