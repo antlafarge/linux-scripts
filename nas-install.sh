@@ -16,9 +16,15 @@ raidMountPoint="/storage"                              # RAID mount point
 storagePath="/storage"                           # Storage path
 dockerComposeYmlPath="$storagePath/Private/Apps" # Docker compose yml config path
 
-otherAppsToInstall="curl git"
+otherPackagesToInstall="curl git"
 
 # SCRIPT
+
+if [ ! -d "/home/$user" ]; then
+    echo "Home directory not found (/home/$user)"
+    echo "Check script variables"
+    exit 1
+fi
 
 # UPDATE
 echo "========"
@@ -27,21 +33,22 @@ if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
     apt update
     apt upgrade -y
     apt full-upgrade -y
-    if [[ -z $otherAppsToInstall ]]; then # if other apps to install
-        apt install -y $otherAppsToInstall
+    if [[ -z "$otherPackagesToInstall" ]]; then # if there are other packages to install
+        apt install -y $otherPackagesToInstall
     fi
     apt autoremove -y
     apt purge
     echo -e "OS and packages updated"
 fi
 
-# SSH-KEY
+# SSH
 echo "========"
 read -p "Create SSH Key ? (y/N) : " res
 if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
-    file="~/.ssh/$user"
+    file="/home/$user/.ssh/$user"
     ssh-keygen -o -t ed25519 -C "$user" -f "$file"
-    if [[ -z "$(eval "$(ssh-agent -s)")" ]]; then
+    evalSshAgentS=$(eval "$(ssh-agent -s)")
+    if [[ -z "$evalSshAgentS" ]]; then
         ssh-add "$file"
         echo -e "\tKey created"
     else
