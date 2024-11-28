@@ -7,13 +7,13 @@
 user="MyUsername" # Linux user account name
 
 hddUuid="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" # HDD UUID (to check : lsblk -o NAME,VENDOR,MODEL,MOUNTPOINT,SIZE,FSUSE%,TYPE,PTTYPE,FSTYPE,LABEL,UUID)
-hddMountPoint="/hdd" # HDD mount point
+hddMountPoint="/hdd"                           # HDD mount point
 
 raidMembersUuid="YYYYYYYY-YYYY-YYYY-YYYY-YYYYYYYYYYYY" # RAID array members UUID (to check : lsblk -o NAME,VENDOR,MODEL,MOUNTPOINT,SIZE,FSUSE%,TYPE,PTTYPE,FSTYPE,LABEL,UUID)
-raidDevicePoint="/dev/md0" # RAID device point
-raidMountPoint="/storage" # RAID mount point
+raidDevicePoint="/dev/md0"                             # RAID device point
+raidMountPoint="/storage"                              # RAID mount point
 
-storagePath="/storage" # Storage path
+storagePath="/storage"                           # Storage path
 dockerComposeYmlPath="$storagePath/Private/Apps" # Docker compose yml config path
 
 otherAppsToInstall="curl git"
@@ -35,10 +35,24 @@ if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
     echo -e "OS and packages updated"
 fi
 
+# SSH-KEY
+echo "========"
+read -p "Create SSH Key ? (y/N) : " res
+if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
+    file="~/.ssh/$user"
+    ssh-keygen -o -t ed25519 -C "$user" -f "$file"
+    if [[ -z "$(eval "$(ssh-agent -s)")" ]]; then
+        ssh-add "$file"
+        echo -e "\tKey created"
+    else
+        echo -e "\tSSH agent not found"
+    fi
+fi
+
 # HDD
 echo "========"
 read -p "Mount HDD ? (y/N) : " res
-if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
+if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then        # if user answered yes
     if ! $(lsblk -l -o UUID | grep -q "$hddUuid"); then # if HDD UUID found
         echo -e "\tERROR : HDD UUID not found !!"
         exit 1
@@ -49,12 +63,12 @@ if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
     chown -R root:users $hddMountPoint
     chmod -R 775 $hddMountPoint
     find $hddMountPoint -type d -exec chmod g+s {} \;
-    
+
     hddFstabLine="UUID=$hddUuid	$hddMountPoint	auto	nofail,auto,defaults,noatime	0	0"
 
     if ! grep -q "$hddFstabLine" /etc/fstab; then # if not in fstab
         echo -e "\tEnable auto-mount on system startup"
-        echo -e "\n$hddFstabLine\n" >> /etc/fstab
+        echo -e "\n$hddFstabLine\n" >>/etc/fstab
     fi
 
     if ! $(lsblk -l -o UUID,MOUNTPOINT | grep -Eq "$hddUuid\s+$hddMountPoint"); then # if not mounted
@@ -98,12 +112,12 @@ if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
     chown root:users $raidMountPoint
     chmod 775 $raidMountPoint
     find $raidMountPoint -type d -exec chmod g+s {} \;
-    
+
     raidFstabLine="$raidDevicePoint	$raidMountPoint	auto	nofail,auto,defaults,noatime	0	0"
-    
+
     if ! grep -q "$raidFstabLine" /etc/fstab; then # if not in fstab
         echo -e "\tEnable auto-mount on system startup"
-        echo -e "\n$raidFstabLine\n" >> /etc/fstab
+        echo -e "\n$raidFstabLine\n" >>/etc/fstab
     fi
 
     if ! $(lsblk -l -o UUID,MOUNTPOINT | grep -Eq "$raidDevicePoint\s+$raidMountPoint"); then # if not mounted
@@ -115,8 +129,7 @@ if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
 fi
 
 # SAMBA functions
-sambaAddOrReplaceFieldValueInSection()
-{
+sambaAddOrReplaceFieldValueInSection() {
     section=$1
     field=$2
     value=$3
@@ -125,18 +138,18 @@ sambaAddOrReplaceFieldValueInSection()
     startingSectionLine=$(grep -Ein -m 1 "^\[$section\]$" $file | cut -d":" -f1)
 
     if [[ -z $startingSectionLine ]]; then # if startingSectionLine is null
-        echo -e "\n[$section]\n\n   $field = $value" >> $file
+        echo -e "\n[$section]\n\n   $field = $value" >>$file
     else
         endingSectionLine=$(sed "1,${startingSectionLine}g" $file | grep -Ein -m 1 "^\[.+\]$" | cut -d":" -f1)
 
         if [[ -z $endingSectionLine ]]; then # if endingSectionLine is null
             endingSectionLine=$(grep -c "" $file)
             insertLine=$endingSectionLine
-            ((endingSectionLine+=2))
+            ((endingSectionLine += 2))
         else
             insertLine=$endingSectionLine
         fi
-        
+
         found=$(sed -n "$startingSectionLine,${endingSectionLine}s/^\s*$field\s*=/&/p" $file)
 
         if [[ -z $found ]]; then # if found is null
@@ -199,7 +212,7 @@ if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
         sambaAddOrReplaceFieldValueInSection "Public" "directory mask" "0777" "/etc/samba/smb.conf"
         sambaAddOrReplaceFieldValueInSection "Public" "force create mode" "0777" "/etc/samba/smb.conf"
         sambaAddOrReplaceFieldValueInSection "Public" "force directory mode" "0777" "/etc/samba/smb.conf"
-        
+
         # Shared
         echo -e "\tSetup 'Shared' Samba share"
         mkdir -p $storagePath/Shared
@@ -219,7 +232,7 @@ if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
         sambaAddOrReplaceFieldValueInSection "Shared" "directory mask" "0775" "/etc/samba/smb.conf"
         sambaAddOrReplaceFieldValueInSection "Shared" "force create mode" "0775" "/etc/samba/smb.conf"
         sambaAddOrReplaceFieldValueInSection "Shared" "force directory mode" "0775" "/etc/samba/smb.conf"
-        
+
         # Private
         echo -e "\tSetup 'Private' Samba share"
         mkdir -p $storagePath/Private
@@ -241,7 +254,7 @@ if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
         sambaAddOrReplaceFieldValueInSection "Private" "force create mode" "0770" "/etc/samba/smb.conf"
         sambaAddOrReplaceFieldValueInSection "Private" "force directory mode" "0770" "/etc/samba/smb.conf"
     fi
-    
+
     echo "========"
     read -p "Create a samba user named '$user' ? (y/N) : " res
     if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
@@ -253,13 +266,12 @@ if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
 fi
 
 # DLNA functions
-minidlnaConfPathReplacement()
-{
+minidlnaConfPathReplacement() {
     type=$1 # "V" or "A" or "P"
     pathToSet=$2
     file=$3
 
-    if ! grep -Eq "^media_dir=$type,$pathToSet$" $file; then # if the directory is different
+    if ! grep -Eq "^media_dir=$type,$pathToSet$" $file; then              # if the directory is different
         sed -i "s|^media_dir=$type,.*$|media_dir=$type,$pathToSet|" $file # delimiter is | to avoid slahes escape
     fi
 
@@ -271,7 +283,7 @@ echo "========"
 read -p "Install and configure minidlna ? (y/N) : " res
 if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
     apt install -y minidlna
-    
+
     usermod -aG users minidlna
 
     echo -e "Add shared directories to minidlna config '/etc/minidlna.conf'"
@@ -288,7 +300,7 @@ echo "========"
 read -p "Install Docker and run Docker compose ? (y/N) : " res
 if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
     # Install Docker
-    if ! dpkg -s docker-ce &> /dev/null; then
+    if ! dpkg -s docker-ce &>/dev/null; then
         curl -sSL https://get.docker.com | sh
     fi
 
