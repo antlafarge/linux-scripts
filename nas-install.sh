@@ -31,9 +31,8 @@ echo "========"
 read -p "OS and packages update ? (y/N) : " res
 if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
     apt update
-    apt upgrade -y
     apt full-upgrade -y
-    if [[ -z "$otherPackagesToInstall" ]]; then # if there are other packages to install
+    if [ -n "$otherPackagesToInstall" ]; then # if there are other packages to install
         apt install -y $otherPackagesToInstall
     fi
     apt autoremove -y
@@ -47,13 +46,12 @@ read -p "Create SSH Key ? (y/N) : " res
 if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
     file="/home/$user/.ssh/$user"
     ssh-keygen -o -t ed25519 -C "$user" -f "$file"
-    evalSshAgentS=$(eval "$(ssh-agent -s)")
-    if [[ -z "$evalSshAgentS" ]]; then
-        ssh-add "$file"
-        echo -e "\tKey created"
-    else
-        echo -e "\tSSH agent not found"
-    fi
+    chown "$user:$user" "$file"
+    chown "$user:$user" "$file.pub"
+    cat "$file.pub" >> "/home/$user/.ssh/authorized_keys"
+    echo -e "\tKeys created, get the private key ($file) and add it to your client ssh agent :"
+    echo -e "\t\t- ssh-add \"$HOME/.ssh/privateKey\""
+    echo -e "\t\t- ssh-add \"C:\\Users\\MyUser\\.ssh\\privateKey\" (don't forget to enable service \"OpenSSH Authentication agent\")"
 fi
 
 # HDD
