@@ -31,7 +31,7 @@ echo "========"
 read -p "OS and packages update ? (y/N) : " res
 if [[ "$res" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
     apt update
-    apt full-upgrade -y
+    apt upgrade -y
     if [ -n "$otherPackagesToInstall" ]; then # if there are other packages to install
         apt install -y $otherPackagesToInstall
     fi
