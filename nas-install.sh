@@ -276,8 +276,12 @@ minidlnaConfPathReplacement() {
     pathToSet=$2
     file=$3
 
-    if ! grep -Eq "^media_dir=$type,$pathToSet$" $file; then              # if the directory is different
-        sed -i "s|^media_dir=$type,.*$|media_dir=$type,$pathToSet|" $file # delimiter is | to avoid slahes escape
+    if ! grep -Eq "^media_dir=$type,$pathToSet$" $file; then                  # if the directory is different
+        if grep -Eq "^media_dir=$type,.*$" $file; then                        # if there is a line to change
+            sed -i "s|^media_dir=$type,.*$|media_dir=$type,$pathToSet|" $file # delimiter is | to avoid slashes escape
+        else                                                                  # else we add the line to the end of the file
+            echo media_dir=$type,$pathToSet >>$file
+        fi
     fi
 
     echo "media_dir=$type,$pathToSet"
