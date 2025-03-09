@@ -58,6 +58,7 @@ echo "========"
 if [[ "$(read -p "Create SSH Key ? (y/N) : " && echo "$REPLY")" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
     sshDir="/home/$user/.ssh"
     mkdir -m 700 -p /home/$user/.ssh
+    chown "$user:$user" "$sshDir"
     file="$sshDir/$user"
     ssh-keygen -o -t ed25519 -C "$user" -f "$file"
     chown "$user:$user" "$file"
