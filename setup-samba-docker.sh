@@ -129,7 +129,9 @@ fi
 
 echo "========"
 if [[ "$(read -p "Create a samba user named '$user' ? (y/N) : " && echo "$REPLY")" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
-    docker exec -it $containerName adduser -D -H $user $user
+    read -p "UID ? [1000]" uid
+    uidOption=$([ -n "$uid" ] && echo "-u $uid" || echo "")
+    docker exec $containerName adduser -D -H $uidOption $user $user
     docker exec $containerName getent group users || docker exec $containerName addgroup users
     docker exec $containerName addgroup $user users
     docker exec -it $containerName smbpasswd -a $user
