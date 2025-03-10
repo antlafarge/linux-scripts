@@ -37,7 +37,6 @@ fi
 
 # GROUP users
 getent group users || addgroup users
-usersGid=$(getent group users | cut -d: -f3)
 addgroup $user users
 
 # UPDATE
