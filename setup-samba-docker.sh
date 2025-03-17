@@ -69,10 +69,10 @@ echo "========"
 if [[ "$(read -p "Add your 'Public', 'Shared' and 'Private' storage directories as Samba shares ? (y/N) : " && echo "$REPLY")" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
     # Public
     echo -e "\tSetup 'Public' Samba share"
-    mkdir -m 777 -p $storagePath/Public
-    chown -R root:users $storagePath/Public
-    chmod -R 777 $storagePath/Public
-    find $storagePath/Public -type d -exec chmod g+s {} \;
+    docker exec mkdir -m 777 -p $storagePath/Public
+    docker exec chown -R root:users $storagePath/Public
+    docker exec chmod -R 777 $storagePath/Public
+    docker exec find $storagePath/Public -type d -exec chmod g+s {} \;
     sambaAddOrReplaceFieldValueInSection "Public" "comment" "Public storage" "/etc/samba/smb.conf"
     sambaAddOrReplaceFieldValueInSection "Public" "path" "$storagePath/Public" "/etc/samba/smb.conf"
     sambaAddOrReplaceFieldValueInSection "Public" "browseable" "yes" "/etc/samba/smb.conf"
@@ -88,10 +88,10 @@ if [[ "$(read -p "Add your 'Public', 'Shared' and 'Private' storage directories 
 
     # Shared
     echo -e "\tSetup 'Shared' Samba share"
-    mkdir -m 775 -p $storagePath/Shared
-    chown -R root:users $storagePath/Shared
-    chmod -R 775 $storagePath/Shared
-    find $storagePath/Shared -type d -exec chmod g+s {} \;
+    docker exec mkdir -m 775 -p $storagePath/Shared
+    docker exec chown -R root:users $storagePath/Shared
+    docker exec chmod -R 775 $storagePath/Shared
+    docker exec find $storagePath/Shared -type d -exec chmod g+s {} \;
     sambaAddOrReplaceFieldValueInSection "Shared" "comment" "Shared storage" "/etc/samba/smb.conf"
     sambaAddOrReplaceFieldValueInSection "Shared" "path" "$storagePath/Shared" "/etc/samba/smb.conf"
     sambaAddOrReplaceFieldValueInSection "Shared" "browseable" "yes" "/etc/samba/smb.conf"
@@ -108,10 +108,10 @@ if [[ "$(read -p "Add your 'Public', 'Shared' and 'Private' storage directories 
 
     # Private
     echo -e "\tSetup 'Private' Samba share"
-    mkdir -m 770 -p $storagePath/Private
-    chown root:users $storagePath/Private
-    chmod -R 770 $storagePath/Private
-    find $storagePath/Private -type d -exec chmod g-s {} \;
+    docker exec mkdir -m 770 -p $storagePath/Private
+    docker exec chown root:users $storagePath/Private
+    docker exec chmod -R 770 $storagePath/Private
+    docker exec find $storagePath/Private -type d -exec chmod g-s {} \;
     sambaAddOrReplaceFieldValueInSection "Private" "comment" "Private storage" "/etc/samba/smb.conf"
     sambaAddOrReplaceFieldValueInSection "Private" "path" "$storagePath/Private" "/etc/samba/smb.conf"
     sambaAddOrReplaceFieldValueInSection "Private" "browseable" "yes" "/etc/samba/smb.conf"
