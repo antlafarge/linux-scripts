@@ -69,7 +69,7 @@ echo "========"
 if [[ "$(read -p "Add your 'Public', 'Shared' and 'Private' storage directories as Samba shares ? (y/N) : " && echo "$REPLY")" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
     # Public
     echo -e "\tSetup 'Public' Samba share"
-    docker exec $containerName mkdir -m 777 -p $storagePath/Public
+    docker exec $containerName mkdir -p $storagePath/Public
     docker exec $containerName chown -R root:users $storagePath/Public
     docker exec $containerName chmod -R 777 $storagePath/Public
     docker exec $containerName find $storagePath/Public -type d -exec chmod g+s {} \;
