@@ -7,6 +7,8 @@ uid=1000               # User UID
 hddMountPoint="/hdd"   # HDD mount point
 storagePath="/storage" # Storage path
 containerName=samba    # Docker container name
+commandSuffix="docker exec $containerName" # command suffix (execute in a docker container, leave empty to execute on local machine)
+confFile="/etc/samba/smb.conf"
 
 # SAMBA functions
 sambaAddOrReplaceFieldValueInSection() {
@@ -15,124 +17,132 @@ sambaAddOrReplaceFieldValueInSection() {
     value=$3
     file=$4
 
-    startingSectionLine=$(docker exec $containerName grep -Ein -m 1 "^\[$section\]$" $file | cut -d":" -f1)
+    # Uncomment section if it was commented
+    $commandSuffix sed -i -e "s/^\s*#\s*\[\s*$section\s*\]\s*$/[$section]/g" $file
+
+    # Get section start line
+    startingSectionLine=$($commandSuffix grep -Ein -m 1 "^\s*\[\s*$section\s*\]\s*$" $file | cut -d: -f1)
 
     if [[ -z "$startingSectionLine" ]]; then # if startingSectionLine is null
-        docker exec $containerName sh -c "echo -e '\n[$section]\n\n   $field = $value' >> $file"
+        $commandSuffix sh -c "echo -e '\n[$section]\n   $field = $value' >> $file"
     else
-        endingSectionLine=$(docker exec $containerName sed "1,${startingSectionLine}g" $file | grep -Ein -m 1 "^\[.+\]$" | cut -d":" -f1)
+        # Get section end line
+        endingSectionLine=$($commandSuffix sed "1,${startingSectionLine}g" $file | grep -Ein -m 1 "^\s*#?\s*\[.+\]\s*$" | cut -d: -f1)
 
         if [[ -z "$endingSectionLine" ]]; then # if endingSectionLine is null
-            endingSectionLine=$(docker exec $containerName grep -c "" $file)
+            endingSectionLine=$($commandSuffix grep -c "" $file)
             insertLine=$endingSectionLine
-            ((endingSectionLine += 2))
         else
             insertLine=$endingSectionLine
         fi
 
-        found=$(docker exec $containerName sed -n "$startingSectionLine,${endingSectionLine}s/^\s*$field\s*=/&/p" $file)
+        # Uncomment field if it was commented
+        $commandSuffix sed -i -e "$startingSectionLine,${endingSectionLine}s/^\s*#\(\s*$field\s*=.*\)$/\1/g" $file
+
+        # Find field
+        found=$($commandSuffix sed -n "$startingSectionLine,${endingSectionLine}s/^\s*$field\s*=/&/p" $file)
 
         if [[ -z $found ]]; then # if found is null
-            docker exec $containerName sed -i "${insertLine}i\   $field = $value\n" $file
+            $commandSuffix sed -i "${insertLine}i\   $field = $value" $file
         else
-            docker exec $containerName sed -i "$startingSectionLine,${endingSectionLine}s/^\s*$field\s*=.*$/   $field = $value/" $file
+            $commandSuffix sed -i "$startingSectionLine,${endingSectionLine}s/^\s*$field\s*=.*$/   $field = $value/" $file
         fi
     fi
 
     echo "$file : [$section] $field = $value"
 }
 
-sambaAddOrReplaceFieldValueInSection "global" "map to guest" "bad user" "/etc/samba/smb.conf"
-sambaAddOrReplaceFieldValueInSection "global" "security" "user" "/etc/samba/smb.conf"
-sambaAddOrReplaceFieldValueInSection "global" "guest account" "nobody" "/etc/samba/smb.conf"
-sambaAddOrReplaceFieldValueInSection "homes" "read only" "no" "/etc/samba/smb.conf"
-sambaAddOrReplaceFieldValueInSection "printers" "browseable" "yes" "/etc/samba/smb.conf"
-sambaAddOrReplaceFieldValueInSection "printers" "guest ok" "yes" "/etc/samba/smb.conf"
+sambaAddOrReplaceFieldValueInSection "global" "map to guest" "bad user" "$confFile"
+sambaAddOrReplaceFieldValueInSection "global" "security" "user" "$confFile"
+sambaAddOrReplaceFieldValueInSection "global" "guest account" "nobody" "$confFile"
+sambaAddOrReplaceFieldValueInSection "homes" "read only" "no" "$confFile"
+sambaAddOrReplaceFieldValueInSection "printers" "browseable" "yes" "$confFile"
+sambaAddOrReplaceFieldValueInSection "printers" "guest ok" "yes" "$confFile"
 
 echo "========"
 if [[ "$(read -p "Add HDD root as a Samba share ? (y/N) : " && echo "$REPLY")" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
-    sambaAddOrReplaceFieldValueInSection "HDD" "comment" "HDD storage" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "HDD" "path" "$hddMountPoint" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "HDD" "browseable" "yes" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "HDD" "public" "yes" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "HDD" "guest ok" "yes" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "HDD" "guest only" "no" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "HDD" "read only" "no" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "HDD" "writable" "yes" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "HDD" "create mask" "0777" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "HDD" "directory mask" "0777" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "HDD" "force create mode" "0777" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "HDD" "force directory mode" "0777" "/etc/samba/smb.conf"
+    sambaAddOrReplaceFieldValueInSection "HDD" "comment" "HDD storage" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "HDD" "path" "$hddMountPoint" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "HDD" "browseable" "yes" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "HDD" "public" "yes" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "HDD" "guest ok" "yes" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "HDD" "guest only" "no" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "HDD" "read only" "no" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "HDD" "writable" "yes" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "HDD" "create mask" "0777" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "HDD" "directory mask" "0777" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "HDD" "force create mode" "0777" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "HDD" "force directory mode" "0777" "$confFile"
 fi
 
 echo "========"
 if [[ "$(read -p "Add your 'Public', 'Shared' and 'Private' storage directories as Samba shares ? (y/N) : " && echo "$REPLY")" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
     # Public
     echo -e "\tSetup 'Public' Samba share"
-    docker exec $containerName mkdir -p $storagePath/Public
-    docker exec $containerName chown -R root:users $storagePath/Public
-    docker exec $containerName chmod -R 777 $storagePath/Public
-    docker exec $containerName find $storagePath/Public -type d -exec chmod g+s {} \;
-    sambaAddOrReplaceFieldValueInSection "Public" "comment" "Public storage" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Public" "path" "$storagePath/Public" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Public" "browseable" "yes" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Public" "public" "yes" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Public" "guest ok" "yes" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Public" "guest only" "no" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Public" "read only" "no" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Public" "writable" "yes" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Public" "create mask" "0777" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Public" "directory mask" "0777" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Public" "force create mode" "0777" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Public" "force directory mode" "0777" "/etc/samba/smb.conf"
+    $commandSuffix mkdir -p $storagePath/Public
+    $commandSuffix chown -R root:users $storagePath/Public
+    $commandSuffix chmod -R 777 $storagePath/Public
+    $commandSuffix find $storagePath/Public -type d -exec chmod g+s {} \;
+    sambaAddOrReplaceFieldValueInSection "Public" "comment" "Public storage" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Public" "path" "$storagePath/Public" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Public" "browseable" "yes" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Public" "public" "yes" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Public" "guest ok" "yes" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Public" "guest only" "no" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Public" "read only" "no" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Public" "writable" "yes" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Public" "create mask" "0777" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Public" "directory mask" "0777" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Public" "force create mode" "0777" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Public" "force directory mode" "0777" "$confFile"
 
     # Shared
     echo -e "\tSetup 'Shared' Samba share"
-    docker exec $containerName mkdir -m 775 -p $storagePath/Shared
-    docker exec $containerName chown -R root:users $storagePath/Shared
-    docker exec $containerName chmod -R 775 $storagePath/Shared
-    docker exec $containerName find $storagePath/Shared -type d -exec chmod g+s {} \;
-    sambaAddOrReplaceFieldValueInSection "Shared" "comment" "Shared storage" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Shared" "path" "$storagePath/Shared" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Shared" "browseable" "yes" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Shared" "public" "yes" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Shared" "guest ok" "yes" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Shared" "guest only" "no" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Shared" "read only" "no" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Shared" "writable" "yes" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Shared" "write list" "@users" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Shared" "create mask" "0775" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Shared" "directory mask" "0775" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Shared" "force create mode" "0775" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Shared" "force directory mode" "0775" "/etc/samba/smb.conf"
+    $commandSuffix mkdir -m 775 -p $storagePath/Shared
+    $commandSuffix chown -R root:users $storagePath/Shared
+    $commandSuffix chmod -R 775 $storagePath/Shared
+    $commandSuffix find $storagePath/Shared -type d -exec chmod g+s {} \;
+    sambaAddOrReplaceFieldValueInSection "Shared" "comment" "Shared storage" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Shared" "path" "$storagePath/Shared" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Shared" "browseable" "yes" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Shared" "public" "yes" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Shared" "guest ok" "yes" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Shared" "guest only" "no" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Shared" "read only" "no" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Shared" "writable" "yes" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Shared" "write list" "@users" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Shared" "create mask" "0775" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Shared" "directory mask" "0775" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Shared" "force create mode" "0775" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Shared" "force directory mode" "0775" "$confFile"
 
     # Private
     echo -e "\tSetup 'Private' Samba share"
-    docker exec $containerName mkdir -m 770 -p $storagePath/Private
-    docker exec $containerName chown root:users $storagePath/Private
-    docker exec $containerName chmod -R 770 $storagePath/Private
-    docker exec $containerName find $storagePath/Private -type d -exec chmod g-s {} \;
-    sambaAddOrReplaceFieldValueInSection "Private" "comment" "Private storage" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Private" "path" "$storagePath/Private" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Private" "browseable" "yes" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Private" "public" "no" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Private" "guest ok" "no" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Private" "guest only" "no" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Private" "read only" "no" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Private" "writable" "yes" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Private" "write list" "@users" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Private" "read list" "@users" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Private" "create mask" "0770" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Private" "directory mask" "0770" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Private" "force create mode" "0770" "/etc/samba/smb.conf"
-    sambaAddOrReplaceFieldValueInSection "Private" "force directory mode" "0770" "/etc/samba/smb.conf"
+    $commandSuffix mkdir -m 770 -p $storagePath/Private
+    $commandSuffix chown root:users $storagePath/Private
+    $commandSuffix chmod -R 770 $storagePath/Private
+    $commandSuffix find $storagePath/Private -type d -exec chmod g-s {} \;
+    sambaAddOrReplaceFieldValueInSection "Private" "comment" "Private storage" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Private" "path" "$storagePath/Private" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Private" "browseable" "yes" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Private" "public" "no" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Private" "guest ok" "no" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Private" "guest only" "no" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Private" "read only" "no" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Private" "writable" "yes" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Private" "write list" "@users" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Private" "read list" "@users" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Private" "create mask" "0770" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Private" "directory mask" "0770" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Private" "force create mode" "0770" "$confFile"
+    sambaAddOrReplaceFieldValueInSection "Private" "force directory mode" "0770" "$confFile"
 fi
 
 echo "========"
 if [[ "$(read -p "Create a samba user named '$user' ? (y/N) : " && echo "$REPLY")" =~ ^\s*[Yy]([Ee][Ss])?\s*$ ]]; then # if user answered yes
-    docker exec $containerName adduser -D -H -u $uid $user $user
-    docker exec $containerName getent group users || docker exec $containerName addgroup users
-    docker exec $containerName addgroup $user users
+    $commandSuffix adduser -D -H -u $uid $user $user
+    $commandSuffix getent group users || $commandSuffix addgroup users
+    $commandSuffix addgroup $user users
     docker exec -it $containerName smbpasswd -a $user
 fi
 
