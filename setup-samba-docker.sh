@@ -7,7 +7,7 @@ uid=1000               # User UID
 hddMountPoint="/hdd"   # HDD mount point
 storagePath="/storage" # Storage path
 containerName=samba    # Docker container name
-commandSuffix="docker exec $containerName" # command suffix (execute in a docker container, leave empty to execute on local machine)
+commandSuffix="docker exec -it $containerName" # command suffix (execute in a docker container, leave empty to execute on local machine)
 confFile="/etc/samba/smb.conf"
 
 # SAMBA functions
@@ -143,7 +143,7 @@ if [[ "$(read -p "Create a samba user named '$user' ? (y/N) : " && echo "$REPLY"
     $commandSuffix adduser -D -H -u $uid $user $user
     $commandSuffix getent group users || $commandSuffix addgroup users
     $commandSuffix addgroup $user users
-    docker exec -it $containerName smbpasswd -a $user
+    $commandSuffix smbpasswd -a $user
 fi
 
 echo -e "\tSetup finished. Please restart the container"
