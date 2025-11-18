@@ -56,7 +56,7 @@ Setup Alpine Raspberry
             - none
             - chrony
             - c (enable community repos)
-            - 86 (ovh) or 1
+            - 1 (or choose another mirror)
             - Type username
             - Type real name
             - Type user password
