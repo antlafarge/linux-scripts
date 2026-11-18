@@ -6,7 +6,7 @@
 su -
 apt update
 apt install sudo
-sudo usermod -a -G sudo [username]
+usermod -aG sudo [username]
 exit
 su [username]
 groups
