@@ -7,6 +7,7 @@ Cette procédure reprend la configuration qui fonctionne sur ton Dell Latitude E
 Le principe : le TPM conserve une clé permettant de déverrouiller le volume LUKS automatiquement au démarrage. La passphrase reste disponible en secours.
 
 ## 1. Vérifier les prérequis
+
 Vérifier que le TPM 2.0 est présent et accessible.
 ```bash
 ls -l /dev/tpm0 /dev/tpmrm0
@@ -18,7 +19,7 @@ mokutil --sb-state
 ```
 
 Résultat attendu :
-```bash
+```text
 SecureBoot enabled
 ```
 
@@ -36,6 +37,7 @@ dracut --version
 ```
 
 ## 2. Sauvegarder l'en-tête LUKS
+
 Cette sauvegarde permet de récupérer le volume en cas de problème avec ses métadonnées.
 ```bash
 sudo cryptsetup luksHeaderBackup /dev/sda3 \
@@ -50,13 +52,14 @@ ls -lh /media/erqsor/USB_4GB/luks-header.img
 Conserver cette sauvegarde en lieu sûr, séparément de l'ordinateur.
 
 ## 3. Configurer crypttab
+
 Éditer le fichier :
 ```bash
 sudo nano /etc/crypttab
 ```
 
 Remplacer les options de la ligne correspondant au volume chiffré par :
-```bash
+```text
 sda3_crypt UUID=ad073bec-54be-4b9b-b8af-d1a184431c70 none luks,discard,x-initrd.attach,tpm2-device=auto,headless=0,tries=3
 ```
 
@@ -69,19 +72,21 @@ sda3_crypt UUID=ad073bec-54be-4b9b-b8af-d1a184431c70 none luks,discard,x-initrd.
 Important : cette option tpm2-device=auto nécessite Dracut. L'ancien initramfs-tools ne la prend pas en charge.
 
 ## 4. Configurer GRUB
+
 Éditer la configuration :
 ```bash
 sudo nano /etc/default/grub
 ```
 
 Ajouter ou modifier cette ligne :
-```bash
+```text
 GRUB_CMDLINE_LINUX="rd.luks=1 rd.auto"
 ```
 
 Ces paramètres indiquent à Dracut de rechercher et d'activer les volumes LUKS automatiquement.
 
 ## 5. Enregistrer une clé dans le TPM
+
 Cette commande associe une clé de déverrouillage LUKS au TPM.
 ```bash
 sudo systemd-cryptenroll \
@@ -98,7 +103,7 @@ sudo systemd-cryptenroll /dev/sda3
 ```
 
 Résultat attendu :
-```bash
+```text
 SLOT TYPE
    0 password
    1 tpm2
@@ -111,6 +116,7 @@ Les PCR 0 et 7 lient le déverrouillage à certains éléments de l'état du fir
 Important : Secure Boot doit être activé avant cet enrôlement. Si son état change ultérieurement, il faudra réexaminer l'enrôlement TPM.
 
 ## 6. Reconstruire l'initramfs avec Dracut
+
 Cette commande reconstruit l'image de démarrage du noyau actuellement utilisé.
 ```bash
 sudo dracut --force --hostonly --kver "$(uname -r)"
@@ -122,7 +128,7 @@ sudo lsinitrd -f etc/crypttab /boot/initrd.img-$(uname -r)
 ```
 
 Résultat attendu : une ligne contenant notamment :
-```bash
+```text
 tpm2-device=auto,headless=0,tries=3
 ```
 
@@ -132,9 +138,9 @@ sudo lsinitrd /boot/initrd.img-$(uname -r) | grep -E 'tpm2|cryptsetup'
 ```
 
 ## 7. Mettre à jour GRUB
+
 Cette commande régénère la configuration de démarrage avec les nouveaux paramètres.
 sudo update-grub
-
 
 Vérifier que les paramètres sont présents dans la configuration générée :
 ```bash
@@ -142,11 +148,12 @@ sudo grep -m 2 'rd.luks=1 rd.auto' /boot/grub/grub.cfg
 ```
 
 Résultat attendu : les entrées de démarrage contiennent :
-```bash
+```text
 rd.luks=1 rd.auto
 ```
 
 ## 8. Redémarrer et tester
+
 ```bash
 sudo reboot
 ```
@@ -160,7 +167,28 @@ sudo systemd-cryptenroll /dev/sda3
 
 Le slot TPM2 doit toujours être présent.
 
-## 9. Procédure de secours
+## 9. Clean
+
+Le clean des paquets risque de modifier la configuration et réactiver la demande de passphrase LUKS2 au démarrage de l'ordinateur.  
+Donc après avoir supprimé les paquets inutilisés ou toute mise à jour du noyau, il faudra probablement reconstruire l'initramfs avec Dracut :
+
+```bash
+sudo apt autoremove
+sudo dracut --force --hostonly --kver "$(uname -r)"
+```
+
+Vérifier que la configuration crypttab est bien intégrée :
+```bash
+sudo lsinitrd -f etc/crypttab /boot/initrd.img-$(uname -r)
+```
+
+Le résultat doit contenir les options suivantes :
+```text
+tpm2-device=auto,headless=0,tries=3
+```
+
+## 10. Procédure de secours
+
 Si le TPM ne parvient plus à déverrouiller le disque, il reste possible de démarrer avec la passphrase.
 
 Au menu GRUB :
