@@ -187,7 +187,54 @@ Le résultat doit contenir les options suivantes :
 tpm2-device=auto,headless=0,tries=3
 ```
 
-## 10. Procédure de secours
+## 10. Mises à jour du système - Configuration Dracut persistante
+
+**Important :** cette configuration est indispensable pour que les régénérations automatiques de l'initramfs conservent les paramètres nécessaires au déverrouillage LUKS via TPM2.
+
+Créer le fichier :
+```bash
+sudo nano /etc/dracut.conf.d/10-luks-tpm.conf
+```
+
+Y ajouter :
+```ini
+hostonly="yes"
+hostonly_cmdline="yes"
+```
+
+Enregistrer puis vérifier :
+```bash
+cat /etc/dracut.conf.d/10-luks-tpm.conf
+```
+
+**Pourquoi ?**
+
+Sans ces paramètres, une génération de l'initramfs avec la commande du hook Debian peut produire une image ne contenant pas `/etc/crypttab`. Le déverrouillage automatique via TPM2 ne fonctionne alors plus.
+
+Cette configuration a été vérifiée par un test comparatif : sans ce fichier, `/etc/crypttab` était absent de l'initramfs ; après restauration du fichier et nouvelle génération, l'entrée LUKS était bien présente.
+
+### Après une mise à jour importante du système
+
+Après une mise à jour du noyau ou des composants Dracut, vérifier que l'initramfs contient toujours l'entrée LUKS :
+```bash
+sudo lsinitrd -f etc/crypttab /boot/initrd.img-$(uname -r)
+```
+
+L'entrée attendue doit contenir notamment :
+```text
+sda3_crypt /dev/disk/by-uuid/ad073bec-54be-4b9b-b8af-d1a184431c70 none luks,discard,x-initrd.attach,tpm2-device=auto,headless=0,tries=3
+```
+
+Si nécessaire, régénérer manuellement l'initramfs du noyau courant :
+```bash
+sudo dracut --force --hostonly --kver "$(uname -r)"
+```
+
+Puis vérifier à nouveau la présence de `/etc/crypttab` avec `lsinitrd`.
+
+**Ne pas redémarrer tant que cette vérification n'est pas satisfaisante.**
+
+## 11. Procédure de secours
 
 Si le TPM ne parvient plus à déverrouiller le disque, il reste possible de démarrer avec la passphrase.
 
