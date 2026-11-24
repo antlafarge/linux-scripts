@@ -9,7 +9,7 @@ openssl rsa -in dkim-private.key -pubout -out dkim-public.key
 
 publicKey=$(sed '/^-.*-$/d' dkim-public.key | tr -d '\n')
 
-printf "<selector>._domainkey IN TXT v=DKIM1; k=rsa; p=$publicKey" > dns-record.txt
+printf "<selector>._domainkey IN TXT \"v=DKIM1; h=sha256; k=rsa; p=$publicKey; s=email;\"" > dns-record.txt
 
 cd ..
 
